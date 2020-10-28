@@ -1,25 +1,19 @@
-package com.wudi.socket.chapter5_udp.server;
+package com.wudi.socket.chapter5_tcp.server;
 
-import com.wudi.socket.chapter5_udp.clink.ByteUtils;
-import com.wudi.socket.chapter5_udp.constants.UDPConstants;
+import com.wudi.socket.chapter5_tcp.clink.net.qiujuer.clink.utils.ByteUtils;
+import com.wudi.socket.chapter5_tcp.constants.UDPConstants;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
-/**
- * @author Dillon Wu
- * @Description: 服务器提供端
- * @date 2020/10/26 11:28
- */
-public class ServerProvider {
+class UDPProvider {
     private static Provider PROVIDER_INSTANCE;
 
     static void start(int port) {
         stop();
         String sn = UUID.randomUUID().toString();
-        //Provider实现了一个线程
         Provider provider = new Provider(sn, port);
         provider.start();
         PROVIDER_INSTANCE = provider;
@@ -37,10 +31,9 @@ public class ServerProvider {
         private final int port;
         private boolean done = false;
         private DatagramSocket ds = null;
-        //存储消息Buffer
+        // 存储消息的Buffer
         final byte[] buffer = new byte[128];
 
-        //有参构造
         Provider(String sn, int port) {
             super();
             this.sn = sn.getBytes();
@@ -50,29 +43,38 @@ public class ServerProvider {
         @Override
         public void run() {
             super.run();
-            System.out.println("UDPProvider Started");
+
+            System.out.println("UDPProvider Started.");
+
             try {
-                //监听20000端口
+                // 监听20000 端口
                 ds = new DatagramSocket(UDPConstants.PORT_SERVER);
-                //接收消息的Packet
+                // 接收消息的Packet
                 DatagramPacket receivePack = new DatagramPacket(buffer, buffer.length);
+
                 while (!done) {
-                    //接收
+
+                    // 接收
                     ds.receive(receivePack);
-                    //打印接收到的信信息与发送者的信息
+
+                    // 打印接收到的信息与发送者的信息
+                    // 发送者的IP地址
                     String clientIp = receivePack.getAddress().getHostAddress();
                     int clientPort = receivePack.getPort();
                     int clientDataLen = receivePack.getLength();
                     byte[] clientData = receivePack.getData();
                     boolean isValid = clientDataLen >= (UDPConstants.HEADER.length + 2 + 4)
                             && ByteUtils.startsWith(clientData, UDPConstants.HEADER);
-                    System.out.println("ServerProvider receive form ip:" + clientIp +
-                            "\tport" + clientPort + "\tdataValid:" + isValid);
+
+                    System.out.println("UDPProvider receive form ip:" + clientIp
+                            + "\tport:" + clientPort + "\tdataValid:" + isValid);
+
                     if (!isValid) {
-                        //无效继续
+                        // 无效继续
                         continue;
                     }
-                    //解析命令与会送端口
+
+                    // 解析命令与回送端口
                     int index = UDPConstants.HEADER.length;
                     short cmd = (short) ((clientData[index++] << 8) | (clientData[index++] & 0xff));
                     int responsePort = (((clientData[index++]) << 24) |
@@ -96,27 +98,32 @@ public class ServerProvider {
                                 responsePort);
                         ds.send(responsePacket);
                         System.out.println("UDPProvider response to:" + clientIp + "\tport:" + responsePort + "\tdataLen:" + len);
+                    } else {
+                        System.out.println("UDPProvider receive cmd nonsupport; cmd:" + cmd + "\tport:" + port);
                     }
                 }
-            } catch (Exception ingored) {
-
+            } catch (Exception ignored) {
             } finally {
-             close();
+                close();
             }
+
+            // 完成
+            System.out.println("UDPProvider Finished.");
         }
 
-        //离开接口
-        void exit() {
-            done = true;
-            close();
-        }
-
-        //关闭接口
         private void close() {
             if (ds != null) {
                 ds.close();
                 ds = null;
             }
+        }
+
+        /**
+         * 提供结束
+         */
+        void exit() {
+            done = true;
+            close();
         }
     }
 }

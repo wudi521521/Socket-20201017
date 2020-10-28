@@ -9,6 +9,7 @@ import com.wudi.socket.chapter5_udp.constants.TCPConstants;
  */
 public class Server {
     public static void main(String[] args) {
+        //HTTP的端口号
         ServerProvider.start(TCPConstants.PORT_SERVER);
         try{
             System.in.read();
